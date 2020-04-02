@@ -37,39 +37,39 @@ class SEIRModel:
     
 class EmissionModel:
     def __init__(self,
-                 f_hosp=0.06,
-                 f_death = 0.15,
-                 n_hosp = 6.,
-                 T_hosp = 10.,
-                 n_resolve=3,
-                 T_resolve=10.,
-                 n_death=8,
+                 f_cdr=0.044,
+                 f_ifr = 0.009,
+                 n_detect = 4.,
+                 T_detect = 11.,
+                 n_resolve=9,
+                 T_resolve=8.,
+                 n_death=4,
                  T_death=14.):
-        self.p_symptoms = f_hosp * dg_weights(n_hosp,
-                                              T_hosp/n_hosp,
-                                              int(T_hosp*30))
-        self.p_resolve = (1-f_death) * dg_weights(n_resolve,
+        self.p_symptoms = f_cdr * dg_weights(n_detect,
+                                              T_detect/n_detect,
+                                              int(T_detect*30))
+        self.p_resolve = (1-f_ifr/f_cdr) * dg_weights(n_resolve,
                                                   T_resolve/n_resolve,
                                                   int(T_resolve*30))
-        self.p_death = f_death * dg_weights(n_death,
-                                            T_death/n_death,
-                                            int(T_death*30))
+        self.p_death = (f_ifr / f_cdr) * dg_weights(n_death,
+                                                    T_death/n_death,
+                                                    int(T_death*30))
         
     def add_observables(self, sim):
         sim['All exposed'] = sim.E + sim.I + sim.R
         sim['Daily exposed'] = sim['All exposed'].diff()
         sim['Daily exposed'].iloc[0] = 0.
-        sim['Daily admissions'] = dp_convolve(sim['Daily exposed'],
+        sim['Daily cases'] = dp_convolve(sim['Daily exposed'],
                                             self.p_symptoms)
-        sim['Daily remissions'] = dp_convolve(sim['Daily admissions'],
+        sim['Daily recoveries'] = dp_convolve(sim['Daily cases'],
                                               self.p_resolve)
-        sim['Daily deaths'] = dp_convolve(sim['Daily admissions'],
+        sim['Daily deaths'] = dp_convolve(sim['Daily cases'],
                                           self.p_death)
-        sim['All admissions'] = sim['Daily admissions'].cumsum()
-        sim['All remissions'] = sim['Daily remissions'].cumsum()
+        sim['All cases'] = sim['Daily cases'].cumsum()
+        sim['All recoveries'] = sim['Daily recoveries'].cumsum()
         sim['All deaths'] = sim['Daily deaths'].cumsum()
-        sim['Active cases'] = (sim['All admissions'] -
-                               sim['All remissions'] -
+        sim['Active cases'] = (sim['All cases'] -
+                               sim['All recoveries'] -
                                sim['All deaths'])
         return sim
         
@@ -106,7 +106,7 @@ def run_outbreak(transmission_model,
 def calibrate_timing_to_cases(sim, confirmed_cases):
     """
     Assumes confirmed_cases is a date-indexed Series. Currently assumes
-    confirmed cases equivalent to admissions.
+    confirmed cases.
     """
     ref_date = confirmed_cases.index[0]
     confirmed_cases = confirmed_cases.copy()
@@ -114,7 +114,7 @@ def calibrate_timing_to_cases(sim, confirmed_cases):
                              confirmed_cases.index[0]).to_series().dt.days
     def mape(shift):
         C = np.interp(confirmed_cases.index+shift, sim.index,
-                      sim['All admissions'].values)
+                      sim['All cases'].values)
         return (C / confirmed_cases - 1).abs().mean()
     opt = minimize_scalar(mape)
     if not opt.success:
@@ -129,12 +129,12 @@ def calibrate_timing_to_cases(sim, confirmed_cases):
 def identify_date(sim, confirmed_cases, target_date='2020/03/14'):
     """
     Assumes confirmed_cases is a date-indexed Series. Currently assumes
-    confirmed cases equivalent to admissions.
+    confirmed cases.
     """
     target_date = pd.to_datetime(target_date)
     target_value = confirmed_cases[target_date]
     try:
-        date_offset = sim.index[sim['All admissions']>target_value][0]
+        date_offset = sim.index[sim['All cases']>target_value][0]
     except IndexError: 
         raise ValueError("Cannot find suitable date offset")
     result = sim.copy()
