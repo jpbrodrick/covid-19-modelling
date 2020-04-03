@@ -155,3 +155,7 @@ def dp_convolve(signal, p):
     """ Convolve kernel p over a signal forward in time, returning
     a vector of equal length to signal """
     return np.convolve(signal, p, mode='full')[:len(signal)]
+
+def piecewise_linear_R_0_profile(dates, R_0s, baseline_simulation):
+    dates = (pd.to_datetime(dates) - baseline_simulation.index[0]).days.values
+    return lambda t: np.interp(t, dates, R_0s)
