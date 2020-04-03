@@ -38,7 +38,7 @@ class SEIRModel:
 class EmissionModel:
     def __init__(self,
                  f_cdr=0.044,
-                 f_ifr = 0.009,
+                 f_cfr = 0.009,
                  n_detect = 4.,
                  T_detect = 11.,
                  n_resolve=9,
@@ -48,10 +48,10 @@ class EmissionModel:
         self.p_symptoms = f_cdr * dg_weights(n_detect,
                                               T_detect/n_detect,
                                               int(T_detect*30))
-        self.p_resolve = (1-f_ifr/f_cdr) * dg_weights(n_resolve,
+        self.p_resolve = (1-f_cfr/f_cdr) * dg_weights(n_resolve,
                                                   T_resolve/n_resolve,
                                                   int(T_resolve*30))
-        self.p_death = (f_ifr / f_cdr) * dg_weights(n_death,
+        self.p_death = (f_cfr / f_cdr) * dg_weights(n_death,
                                                     T_death/n_death,
                                                     int(T_death*30))
         
