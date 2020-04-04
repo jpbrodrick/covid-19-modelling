@@ -5,16 +5,21 @@ from scipy.optimize import minimize_scalar
 from scipy.stats import linregress, gamma
 from collections import namedtuple
 
-state_labels = ['S', 'E', 'I', 'R']
-State = namedtuple('State', state_labels)
-def make_state(S=0, E=0, I=0, R=0):
-    return State(S=S, E=E, I=I, R=R)
+class SEIR(namedtuple('SEIR', ['S', 'E', 'I', 'R'])):
+    @staticmethod
+    def make_state(S=0, E=0, I=0, R=0):
+        return SEIR(S=S, E=E, I=I, R=R)
 
-def v2s(v):
-    return State(*v)
+    @staticmethod
+    def from_a(a):
+        return SEIR(*a)
 
-def s2v(s):
-    return np.array([*s])
+    def to_a(self):
+        return np.array([*self])
+
+    @property
+    def state_labels(self):
+        return self._fields
 
 class SEIRModel:
     def __init__(self,
@@ -26,14 +31,14 @@ class SEIRModel:
         self.T_inf = T_inf
         
     def __call__(self, t, y):
-        y = v2s(y)
+        y = SEIR.from_a(y)
         N = y.S + y.E + y.I + y.R
         beta = self.R_0(t) / (N * self.T_inf)
         Sd = -beta * y.S * y.I
         Ed = beta * y.S * y.I - y.E / self.T_inc
         Id = y.E / self.T_inc - y.I / self.T_inf
         Rd = y.I / self.T_inf        
-        return s2v(make_state(S=Sd, E=Ed, I=Id, R=Rd))
+        return SEIR.make_state(S=Sd, E=Ed, I=Id, R=Rd).to_a()
     
 class EmissionModel:
     def __init__(self,
@@ -94,12 +99,12 @@ def run_outbreak(transmission_model,
     sim_time_days = int(sim_time_days)
     t_eval = np.linspace(0, sim_time_days, sim_time_days+1)
     ivp = solve_ivp(transmission_model, (0, sim_time_days),
-                    s2v(initial_state), t_eval=t_eval)
+                    initial_state.to_a(), t_eval=t_eval)
     if ivp.status != 0:
         print(ivp.message)
     result = pd.DataFrame(ivp.y.T,
                           index=ivp.t,
-                          columns=state_labels)
+                          columns=initial_state.state_labels)
     result = emission_model.add_observables(result)
     return result
 

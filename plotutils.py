@@ -85,7 +85,7 @@ def explore_simulation(initial_growth_rate,
                               n_resolve, T_resolve,
                               n_death, T_death)
     sim_baseline = run_outbreak(t_model_c, e_model_c, 7*sim_time_weeks,
-                                make_state(S=6.64e7, I=1))
+                                SEIR.make_state(S=6.64e7, I=1))
     sim_baseline = calibrate_timing_to_cases(sim_baseline,
                                              observations.confirmed[observations['phase']=='unrestricted'])
     t_model_ld = SEIRModel(**transmission_parameters)
@@ -98,7 +98,7 @@ def explore_simulation(initial_growth_rate,
                                           sim_baseline)
     t_model_ld.R_0 = R_0_ld
     sim_ld = run_outbreak(t_model_ld, e_model_c, 7*sim_time_weeks,
-                          make_state(S=6.64e7, I=1))
+                          SEIR.make_state(S=6.64e7, I=1))
     sim_ld = calibrate_timing_to_cases(sim_ld,
                                        observations.confirmed[observations['phase']=='unrestricted'])
     assert ((sim_baseline.index - sim_ld.index).to_series().dt.days==0).all()
