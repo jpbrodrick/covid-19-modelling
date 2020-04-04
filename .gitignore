@@ -2,3 +2,5 @@
 jhdata/
 *~
 __pycache__/
+untracked/
+simdata/
