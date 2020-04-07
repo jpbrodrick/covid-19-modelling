@@ -100,7 +100,11 @@ class SEIRModel:
         N = y.S + y.E + y.I + y.R
         # Under the assumption that population size does not affect dynamics on a relative basis
         # we enforce that a uniform R_0 across population segments implies a uniform beta
-        beta = self.R_0(t) / (N.sum() * self.T_inf)
+        try:
+            beta = self.R_0(t) / (N.sum() * self.T_inf)
+        except SyntaxError:
+            # If N is just a value rather than an array a SyntaxError will be thrown
+            beta = self.R_0(t) / (N * self.T_inf)
         Sd = -beta * y.S * y.I
         Ed = beta * y.S * y.I - y.E / self.T_inc
         Id = y.E / self.T_inc - y.I / self.T_inf
