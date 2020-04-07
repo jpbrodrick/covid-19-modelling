@@ -98,7 +98,9 @@ class SEIRModel:
     def _ydot(self, t, y):
         y = SEIR.from_a(y)
         N = y.S + y.E + y.I + y.R
-        beta = self.R_0(t) / (N * self.T_inf)
+        # Under the assumption that population size does not affect dynamics on a relative basis
+        # we enforce that a uniform R_0 across population segments implies a uniform beta
+        beta = self.R_0(t) / (N.sum() * self.T_inf)
         Sd = -beta * y.S * y.I
         Ed = beta * y.S * y.I - y.E / self.T_inc
         Id = y.E / self.T_inc - y.I / self.T_inf
